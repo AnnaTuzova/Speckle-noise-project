@@ -1,0 +1,10 @@
+Filters;SSIM
+No filter;0.6851
+median;0.9769
+Lee;0.9490
+Frost;0.9585
+Kuan;0.8652
+bilateral;0.9167
+gamma_MAP;0.9491
+anisotropic diffusion exp g;0.9839
+anisotropic diffusion quad g;0.9669
