@@ -1,4 +1,49 @@
 function [optimal_params, research_result] = FindingOptimalParameters(varargin)
+% FindingOptimalParameters performs an automatic search for optimal
+% parameters for a given filter of speckle noise.
+% 
+% The output arguments of the function are cells: optimal_params and 
+% research_result. 
+% The cell optimal_params includes the final optimal 
+% filter parameters. The cell research_result includes all the intermediate
+% matrices of the study. This may be necessary if you need to build your 
+% own plots (if the built-in ploting does not suit you for some reason). 
+% For a detailed description of the cell fields, see the research manual.
+% 
+% Mandatory input arguments to the function are the TestImage, with the 
+% help of which research will be conducted, and the NameOfFilter. 
+% The test image should be in grayscale, the intensity values ??of its pixels
+% should be in the range from 0 to 1. The name of the filter must
+% completely repeat the name of the function in which this filter 
+% is implemented.
+%
+% You can use name-value arguments for additional settings of the function.
+% 
+% ('NoiseType', value) - allows you to choose the type of noise that will
+% be superimposed on the test image. Possible values are: 'Normal',
+% 'Rayleigh', 'CorrelatedRayleigh'. The default value is: 'Rayleigh'.
+% ('WindowAvailability', value) - allows to enable or disable the presence 
+% of a sliding window at the filter. Possible values are: 'on',
+% 'off'. The default value is: 'on'. When using an anisotropic diffusion
+% filter, this parameter is turned off automatically.
+% 
+% ('WindowInitialSize', value) - allows to set the initial size of the
+% filter sliding window. The value of this parameter should be a 1 by 2 
+% vector of positive numbers. The default value is: [11 11]. 
+%
+% ('FirstFilterParameterRange', value); 
+% ('SecondFilterParameterRange', value); 
+% ('ThirdFilterParameterRange', value) - set the range of values for
+% the first, second and third filter parameters. 
+% Must be a vector of numbers.
+% 
+% ('Plotting', value); ('SavingPlot', value) - enable or disable plotting
+% and saving graphs. Possible values are: 'on', 'off'. 
+% The default value is: 'off'.
+% 
+% ('ParallelComputing', value) - enable or disable parallel computing. 
+% Possible values are: 'on', 'off'. The default value is: 'on'.
+
 %% Parsing input variable
     defaultNoiseType = 'Rayleigh';
     defaultWindowAvailability = 'on';

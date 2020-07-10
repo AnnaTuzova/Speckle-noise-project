@@ -1,4 +1,26 @@
 function OneDimensionSlice(varargin)
+% OneDimensionSlice builds one-dimensional slices.
+%
+% Mandatory input arguments:
+% ReferanceImage - reference image for displaying with a slice line.
+% 
+% NoiseImage - image with noise.
+%
+% OptimalParametersOfFilters - cell with with optimal parameters found.
+%
+% You can use name-value arguments for additional settings of the function.
+% 
+% ('SliceLevel', value) - sets the level at which the slice in the image
+% will pass. It must be a number between 0 and 1.
+% The default value is 0.5 (half image). 
+% 
+% ('PlotSpacingCoefficient', value) - sets the spacing of one-dimensional
+% slices so that they do not overlap each other on the graph. 
+% The default value is 1.
+% 
+% ('SavingPlot', value) - enable or disable saving graph. 
+% Possible values are: 'on', 'off'. The default value is: 'off'.
+
   %% Input parsing
     defaultSliceLevel = 0.5;
     defaultPlotSpacingCoefficient = 0.1;
@@ -9,7 +31,7 @@ function OneDimensionSlice(varargin)
     addRequired(p, 'ReferanceImage', @(x) isnumeric(x) && all(x(:) >= 0) && all(x(:) <= 1))
     addRequired(p, 'NoiseImage', @(x) isnumeric(x) && all(x(:) >= 0) && all(x(:) <= 1))
     addRequired(p, 'OptimalParametersOfFilters', @(x) iscell(x))
-    addParameter(p, 'SliceLevel', defaultSliceLevel, @(x) isnumeric(x) && (x >= 0))
+    addParameter(p, 'SliceLevel', defaultSliceLevel, @(x) isnumeric(x) && (x >= 0) && (x <= 1))
     addParameter(p, 'PlotSpacingCoefficient', defaultPlotSpacingCoefficient, @(x) isnumeric(x) && (x >= 0))
     addParameter(p, 'SavingPlot', defaultSavinfPlot, @(x) any(validatestring(x, expectedOnOff)))
     
@@ -68,10 +90,7 @@ function OneDimensionSlice(varargin)
         y_vals = filt_image(slice_row,:) + plot_spacing_coeff*i;
         plot(indices, y_vals, '-', 'color', color_line(2*i,:),'LineWidth', 1.1, 'HandleVisibility','off')
         plot(indices(1:10:end), y_vals(1:10:end),markers_plot(i), 'color', color_line(2*i,:), 'MarkerSize', 6)
-        legend_names{i} = names_of_filters{i};
-%         plot(indices, filt_image(slice_row,:) + plot_spacing_coeff*i, ...
-%             strcat(markers_plot(i), '-'), 'color', color_line(2*i,:), 'MarkerSize', 1)
-        
+        legend_names{i} = names_of_filters{i}; 
     end
     
     legend_names = ['Image without noise' 'Image with noise' legend_names];

@@ -10,14 +10,14 @@ test_image = mat2gray(rgb2gray(imread('fig2.png')));
 %%Settings for finding optimal parameters
 noise_type = 'Rayleigh';
 plotting_set = 'on'; 
-saving_plot_set = 'on';
-research_condition = 'off'; %%'on' - finding for optimal parameters; 'off' - load existing optimal parameters
+saving_plot_set = 'off';
+research_condition = 'on'; %%'on' - finding for optimal parameters; 'off' - load existing optimal parameters
 %%Settings for filtering
 filtering_condition = 'off';
-imshowing_set = 'on'; 
+imshowing_set = 'off'; 
 imsaving_set = 'off';
-title_condition = 'on';
-oneD_slices_condition = 'on';
+title_condition = 'off';
+oneD_slices_condition = 'off';
 
 %% Finding optimal parameters
 names_of_filters = {'MedianFilter', 'LeeFilter', 'MAPFilter', 'FrostFilter', 'KuanFilter', 'BilateralFilter',...

@@ -2,9 +2,20 @@ function ThreeParameterResearchPlotting(research_result, filter_name)
     pos1 = [0.15 0.55 0.3 0.3];
     subplot('Position', pos1)
     color_line = hsv(2*(length(research_result{2,2}) + 1));
+    markers_plot = ['o', '+', '*', 'x', 's', 'd', '^', 'v', '>', '<', 'p', 'h'];
+    if (length(research_result{2,2}) > length(markers_plot))
+        markers_plot = [markers_plot markers_plot(1:(length(research_result{2,2}) - length(markers_plot)))];
+    end
+    
     for k = 1:length(research_result{2,2})
-        plot(research_result{2,3}, research_result{2,4}(k,:), '.-', 'color', color_line(2*k,:),'LineWidth', 2, 'MarkerSize', 17)
         hold on;
+        y_vals = research_result{2,4}(k,:);
+        plot(research_result{2,3}, y_vals, '-', 'color', color_line(2*k,:),'LineWidth', 1, 'HandleVisibility','off')
+        plot(research_result{2,3}(1:4:end), y_vals(1:4:end), ...
+            markers_plot(k), 'color', color_line(2*k,:), 'MarkerSize', 5)
+        
+%         plot(research_result{2,3}, research_result{2,4}(k,:), '.-', 'color', color_line(2*k,:),'LineWidth', 2, 'MarkerSize', 17)
+        
         legend_names_first_plot{k} = ['Second parameter = ' num2str(research_result{2,2}(k))]; 
     end
     set(gca,'FontSize',12);	grid on;
@@ -35,8 +46,14 @@ function ThreeParameterResearchPlotting(research_result, filter_name)
     pos3 = [0.35 0.1 0.3 0.3];
     subplot('Position', pos3)
     for k = 1:length(research_result{2,2})
-        plot(research_result{2,3}, research_result{2,6}(k,:), '.-', 'color', color_line(2*k,:),'LineWidth', 2, 'MarkerSize', 17)
         hold on;
+        y_vals = research_result{2,6}(k,:);
+        plot(research_result{2,3}, y_vals, '-', 'color', color_line(2*k,:),'LineWidth', 1, 'HandleVisibility','off')
+        plot(research_result{2,3}(1:4:end), y_vals(1:4:end), ...
+            markers_plot(k), 'color', color_line(2*k,:), 'MarkerSize', 5)
+        
+%         plot(research_result{2,3}, research_result{2,6}(k,:), '.-', 'color', color_line(2*k,:),'LineWidth', 2, 'MarkerSize', 17)
+        
         legend_names_second_plot{k} = ['Second parameter = ' num2str(research_result{2,2}(k))]; 
     end
     set(gca,'FontSize',12);	grid on;
