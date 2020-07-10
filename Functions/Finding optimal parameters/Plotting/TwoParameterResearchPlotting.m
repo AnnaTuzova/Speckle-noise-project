@@ -12,6 +12,6 @@ function TwoParameterResearchPlotting(research_result, filter_name, win_size)
     xlabel(strcat("Second variable parameter of ", filter_name)); ylabel('SSIM');
     legend_names = [legend_names strcat("SSIM_{max} = ", num2str(research_result{2,4}(3), '%0.3f'),...
                 " at ", num2str(research_result{2,4}(2)), ...
-                ", ", num2str(win_size(1), '%d'), "\times" , num2str(win_size(2), '%d')), 'Location', 'bestoutside'];
-    legend(legend_names)       
+                ", ", num2str(win_size(1), '%d'), "\times" , num2str(win_size(2), '%d'))];
+    legend(legend_names, 'Location', 'bestoutside')       
 end

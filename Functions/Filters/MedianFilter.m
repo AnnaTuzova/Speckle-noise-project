@@ -1,7 +1,7 @@
 function filt_img = MedianFilter(img, win_size)
 	border = round((win_size-1)/2);
 % 	img = padarray(img,border,1);
-    img = add_copy_border(img, border);
+    img = AddCopyBorder(img, border);
     filt_img = zeros(size(img));
     side_of_win = win_size(1);
     center = (side_of_win - 1)/2;

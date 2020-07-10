@@ -365,6 +365,7 @@ if (plotting_slices == 1)
     image_local_correct = image_local.*(1 + sqrt(pi/2)*sigma);
     image_local_correct = max(min(image_local_correct,1),0);
     image_local_noise = image_noise(row_ind,col_ind);
+    
     indices = 1:1:size(image_local,2);
     slice_row = round(size(image_local,1)*slice_selection);
     up_coeff = 0.1;

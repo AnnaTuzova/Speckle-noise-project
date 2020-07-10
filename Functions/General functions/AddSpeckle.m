@@ -1,4 +1,4 @@
-function noise_img = add_speckle(img, distribution)
+function noise_img = AddSpeckle(img, distribution)
 %%Параметры определены из тестовых равномерных областей. 
 %%См. файл testing_ENL и папку параметры распределения спекл-шума для равномерных участков
     E = 0.3566; %%Нормальное распределение

@@ -39,17 +39,17 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
         case 'Normal' 
             E = 0.3566; 
             D = 0.0201; 
-            noise_image = add_speckle(test_image, noise_type); 
+            noise_image = AddSpeckle(test_image, noise_type); 
             test_image = test_image.*(1 + E);
             test_image = max(min(test_image, 1), 0);
         case 'Rayleigh'
             sigma = 0.2707; 
-            noise_image = add_speckle(test_image, noise_type); 
+            noise_image = AddSpeckle(test_image, noise_type); 
             test_image = test_image.*(1 + sqrt(pi/2)*sigma);
             test_image = max(min(test_image, 1), 0);    
         case 'CorrelatedRayleigh'
             sigma = 0.2707; 
-            noise_image = add_speckle(test_image, noise_type); 
+            noise_image = AddSpeckle(test_image, noise_type); 
             test_image = test_image.*(1 + sqrt(pi/2)*sigma);
             test_image = max(min(test_image, 1), 0);
     end
@@ -76,7 +76,7 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
             OneParameterResearchPlotting(window_research_result, filter_name);
             
             if (strcmp(p.Results.SavingPlot, 'on')) 
-                plot_filename = strcat('graphics\', filter_name, '_', noise_type, '.svg');
+                plot_filename = strcat('Output\Output\Graphics\', filter_name, '_', noise_type, '.svg');
                 print(fig, plot_filename,'-dsvg');
             end
         end
@@ -123,7 +123,7 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
             OneParameterResearchPlotting(one_optimal_parameter_with_optimal_win_size, filter_name, 'WindowSize', [window_research_result{2,3}(1), window_research_result{2,3}(1)])
             
             if (strcmp(p.Results.SavingPlot, 'on')) 
-                plot_filename = strcat('graphics\', filter_name, '_', noise_type, '.svg');
+                plot_filename = strcat('Output\Output\Graphics\', filter_name, '_', noise_type, '.svg');
                 print(fig, plot_filename,'-dsvg');
             end
         end
@@ -147,8 +147,8 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
         two_optimal_parameter_with_optimal_win_size = FindingTwoOptimalParameter(test_image,...
             noise_image, filter_name, [window_research_result{2,3}(1), window_research_result{2,3}(1)],....
             p.Results.FirstFilterParameterRange, p.Results.SecondFilterParameterRange);
-        optimal_params = {'FirstParameterValue', 'SecondParameterValue', 'SSIM'; ...
-            two_optimal_parameter_with_optimal_win_size{2,4}(1), two_optimal_parameter_with_optimal_win_size{2,4}(2),...
+        optimal_params = {'WindowSideSize', 'FirstParameterValue', 'SecondParameterValue', 'SSIM'; ...
+             window_research_result{2,3}(1), two_optimal_parameter_with_optimal_win_size{2,4}(1), two_optimal_parameter_with_optimal_win_size{2,4}(2),...
             two_optimal_parameter_with_optimal_win_size{2,4}(3)};
         research_result = {'WindowSideSize', 'FirstParameterValsWithInitWinSize', 'SecondParameterValsWithInitWinSize',...
             'SSIM(SecondParameterValsWithInitWinSize)',...
@@ -177,7 +177,7 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
             TwoParameterResearchPlotting(two_optimal_parameter_with_optimal_win_size, filter_name, [window_research_result{2,3}(1), window_research_result{2,3}(1)])
             
             if (strcmp(p.Results.SavingPlot, 'on')) 
-                plot_filename = strcat('graphics\', filter_name, '_', noise_type, '.svg');
+                plot_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '.svg');
                 print(fig, plot_filename,'-dsvg');
             end
         end       
@@ -196,12 +196,12 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
             research_result{2,9}(3), research_result{2,9}(4)};
         
          if (strcmp(p.Results.Plotting, 'on'))
-            fig = figure('Name', 'TwoParameterResearch');
+            fig = figure('Name', 'ThreeParameterResearch');
             set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
             ThreeParameterResearchPlotting(research_result, filter_name);
             
             if (strcmp(p.Results.SavingPlot, 'on')) 
-                plot_filename = strcat('graphics\', filter_name, '_', noise_type, '.svg');
+                plot_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '.svg');
                 print(fig, plot_filename,'-dsvg');
             end
         end       
