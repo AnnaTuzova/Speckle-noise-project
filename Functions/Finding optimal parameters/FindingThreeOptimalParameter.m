@@ -31,14 +31,14 @@ function research_result = FindingThreeOptimalParameter(varargin)
     parallel_computing = p.Results.ParallelComputing;
     
     %%Fix param1 and find optimal values of param2 and param3 
-    param1_init_const = median(param1_range(:));
+    param1_init_const = (param1_range(10));
     ssim_vals_first_step = FindingParameters23(param1_init_const);
     [row_1, col_1] = find(ssim_vals_first_step == max(max(ssim_vals_first_step)));
     ssim_optimal_param_first_step = [param1_init_const param2_range(row_1) param3_range(col_1) max(max(ssim_vals_first_step))];
     
     %%Fix param2 and param3 and find optimal value of param1 
-    param2_const = ssim_optimal_param_first_step(1);
-    param3_const = ssim_optimal_param_first_step(2);
+    param2_const = ssim_optimal_param_first_step(2);
+    param3_const = ssim_optimal_param_first_step(3);
     ssim_vals_second_step = zeros([1, length(param1_range)]);    
     tic
     fprintf(strcat("Finding for first optimal parameter of ", filter_name, " filter...\n")); 

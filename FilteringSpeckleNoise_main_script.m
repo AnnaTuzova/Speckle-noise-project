@@ -4,18 +4,23 @@ addpath(genpath('Input'));
 addpath(genpath('Output'));
 
 %% Load test image for finding optimal parameters
-test_image = mat2gray(rgb2gray(imread('fig2.png')));
+test_image = mat2gray(rgb2gray(imread('ref_img_1.png')));
 
 %% Settings 
-%%Settings for finding optimal parameters
 noise_type = 'Rayleigh';
-plotting_set = 'on'; 
-saving_plot_set = 'off';
+
+%%Settings for finding optimal parameters
 research_condition = 'on'; %%'on' - finding for optimal parameters; 'off' - load existing optimal parameters
+window_init_size = [11,11]; 
+parallel_computing_set = 'on';
+plotting_set = 'on'; 
+saving_plot_set = 'on'; 
+figure_type_set = 'SeparateFigures'; %%'SubplotFigures','SeparateFigures'
+
 %%Settings for filtering
-filtering_condition = 'off';
-imshowing_set = 'off'; 
-imsaving_set = 'off';
+filtering_condition = 'on';
+imshowing_set = 'on'; 
+imsaving_set = 'on';
 title_condition = 'off';
 oneD_slices_condition = 'off';
 
@@ -24,41 +29,51 @@ names_of_filters = {'MedianFilter', 'LeeFilter', 'MAPFilter', 'FrostFilter', 'Ku
          'AnisotropicDiffusionExp', 'AnisotropicDiffusionQuad'};
 if (strcmp(research_condition, 'on'))
     [median_optimal_params, ~] = FindingOptimalParameters(test_image, 'MedianFilter',...
-        'NoiseType', noise_type, 'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%Median
+        'NoiseType', noise_type, 'WindowInitialSize', window_init_size,...
+        'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%Median
 
     [Lee_optimal_params, ~] = FindingOptimalParameters(test_image, 'LeeFilter',...
-        'NoiseType', noise_type, 'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%Lee
+        'NoiseType', noise_type, 'WindowInitialSize', window_init_size,...
+        'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%Lee
 
     [MAP_optimal_params, ~] = FindingOptimalParameters(test_image, 'MAPFilter',...
-        'NoiseType', noise_type, 'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%MAP
+        'NoiseType', noise_type, 'WindowInitialSize', window_init_size,...
+        'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%MAP
 
     Frost_parameter_range = 0:0.5:25;
     [Frost_optimal_params, ~] = FindingOptimalParameters(test_image, 'FrostFilter', ...
-        'FirstFilterParameterRange', Frost_parameter_range,...
-        'NoiseType', noise_type, 'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%Frost
+        'NoiseType', noise_type, 'WindowInitialSize', window_init_size,... 
+        'FirstFilterParameterRange', Frost_parameter_range, 'NameOfFirstFilterParameter', 'D',...
+        'Plotting', plotting_set, 'SavingPlot', saving_plot_set, 'FigureType', figure_type_set); %%Frost
 
     Kuan_parameter_range = -0.9:0.2:5;
     [Kuan_optimal_params, ~] = FindingOptimalParameters(test_image, 'KuanFilter', ...
-        'FirstFilterParameterRange', Kuan_parameter_range,...
-        'NoiseType', noise_type, 'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%Kuan
+        'NoiseType', noise_type, 'WindowInitialSize', window_init_size,... 
+        'FirstFilterParameterRange', Kuan_parameter_range, 'NameOfFirstFilterParameter', 'A',...
+        'Plotting', plotting_set, 'SavingPlot', saving_plot_set, 'FigureType', figure_type_set); %%Kuan
 
     bilat_first_parameter_range = 1:2:15; 
     bilat_second_parameter_range = 1:2:70; 
     [bilaterial_optimal_params, ~] = FindingOptimalParameters(test_image, 'BilateralFilter', ...
-        'FirstFilterParameterRange', bilat_first_parameter_range, 'SecondFilterParameterRange', bilat_second_parameter_range,...
-        'NoiseType', noise_type, 'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%Bilaterial
+        'NoiseType', noise_type, 'WindowInitialSize', window_init_size,... 
+        'FirstFilterParameterRange', bilat_first_parameter_range, 'NameOfFirstFilterParameter', '\sigma_{r}',...
+        'SecondFilterParameterRange', bilat_second_parameter_range, 'NameOfSecondFilterParameter', '\sigma_{d}',...
+        'Plotting', plotting_set, 'SavingPlot', saving_plot_set, 'FigureType', figure_type_set); %%Bilaterial
 
     anisotrop_first_parameter_range = 1:1:50; %%t
     anisotrop_second_parameter_range = 0.1:0.1:1; %%k
     anisotrop_third_parameter_range = 0:0.01:0.25; %%delta_t     
-    [anisotropExp_optimal_params, ~] = FindingOptimalParameters(test_image, 'AnisotropicDiffusionExp', ...
-        'FirstFilterParameterRange', anisotrop_first_parameter_range, 'SecondFilterParameterRange', anisotrop_second_parameter_range,...
-        'ThirdFilterParameterRange', anisotrop_third_parameter_range, ...
-        'NoiseType', noise_type, 'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%anisotropic diffusion with exponential g(x)
-    [anisotropQuad_optimal_params, ~] = FindingOptimalParameters(test_image, 'AnisotropicDiffusionQuad', ...
-        'FirstFilterParameterRange', anisotrop_first_parameter_range, 'SecondFilterParameterRange', anisotrop_second_parameter_range,...
-        'ThirdFilterParameterRange', anisotrop_third_parameter_range,...
-        'NoiseType', noise_type, 'Plotting', plotting_set, 'SavingPlot', saving_plot_set); %%anisotropic diffusion with quadratic g(x)
+    [anisotropExp_optimal_params, ~] = FindingOptimalParameters(test_image, 'AnisotropicDiffusionExp', 'NoiseType', noise_type, ...
+        'FirstFilterParameterRange', anisotrop_first_parameter_range, 'NameOfFirstFilterParameter', 't',...
+        'SecondFilterParameterRange', anisotrop_second_parameter_range, 'NameOfSecondFilterParameter', 'k',...
+        'ThirdFilterParameterRange', anisotrop_third_parameter_range, 'NameOfThirdFilterParameter', '\Deltat', ...
+        'Plotting', plotting_set, 'SavingPlot', saving_plot_set, 'FigureType', figure_type_set); %%anisotropic diffusion with exponential g(x)
+    
+    [anisotropQuad_optimal_params, ~] = FindingOptimalParameters(test_image, 'AnisotropicDiffusionQuad', 'NoiseType', noise_type,...
+        'FirstFilterParameterRange', anisotrop_first_parameter_range, 'NameOfFirstFilterParameter', 't', ...
+        'SecondFilterParameterRange', anisotrop_second_parameter_range, 'NameOfSecondFilterParameter', 'k',...
+        'ThirdFilterParameterRange', anisotrop_third_parameter_range, 'NameOfThirdFilterParameter', '\Deltat',...
+        'Plotting', plotting_set, 'SavingPlot', saving_plot_set, 'FigureType', figure_type_set); %%anisotropic diffusion with quadratic g(x)
 
     optimal_parameters_of_filters = names_of_filters;
     optimal_parameters_of_filters{2,1} = median_optimal_params;
@@ -69,10 +84,10 @@ if (strcmp(research_condition, 'on'))
     optimal_parameters_of_filters{2,6} = bilaterial_optimal_params;
     optimal_parameters_of_filters{2,7} = anisotropExp_optimal_params;
     optimal_parameters_of_filters{2,8} = anisotropQuad_optimal_params;
-    save(strcat('Output\Research results\OptimalParametersOfFilters_with_', noise_type, 'Noise.mat'), 'optimal_parameters_of_filters');
+    save(strcat('Output\Research results\OptimalParameters\OptimalParametersOfFilters_with_', noise_type, 'Noise.mat'), 'optimal_parameters_of_filters');
 else
     if (exist(strcat('OptimalParametersOfFilters_with_', noise_type, 'Noise.mat'), 'file'))
-        load(strcat('Output\Research results\OptimalParametersOfFilters_with_', noise_type, 'Noise.mat'));
+        load(strcat('Output\Research results\OptimalParameters\OptimalParametersOfFilters_with_', noise_type, 'Noise.mat'));
     else
         error("Error: File with optimal parameters of filters is not found.")
     end
@@ -98,10 +113,10 @@ if (strcmp(filtering_condition, 'on'))
         end
 
         if (strcmp(imsaving_set, 'on'))
-            ref_img_filename = strcat('Output\Filtering images and tabel\0_ref_img.png');
+            ref_img_filename = strcat('Output\Filtering images\0_ref_img.png');
             print(ref_img_fig, ref_img_filename,'-dpng','-r500');  
 
-            noise_img_filename = strcat('Output\Filtering images and tabel\1_img_with_',...
+            noise_img_filename = strcat('Output\Filtering images\1_img_with_',...
                     noise_type,'_noise.png');
             print(noise_img_fig, noise_img_filename,'-dpng','-r500');  
         end
@@ -141,7 +156,7 @@ if (strcmp(filtering_condition, 'on'))
             end
 
             if (strcmp(imsaving_set, 'on'))
-                filt_img_filename = strcat('Output\Filtering images and tabel\', num2str(i),...
+                filt_img_filename = strcat('Output\Filtering images\', num2str(i),...
                     '_img_with_', noise_type, '_noise_after_', names_of_filters{i}, '.png');
                 print(filt_img_fig, filt_img_filename,'-dpng','-r500');
             end
@@ -151,7 +166,7 @@ if (strcmp(filtering_condition, 'on'))
     %%Table of metric values
     table_metric = table(['No filter'; names_of_filters'], ssim_vals');
     table_metric.Properties.VariableNames = {'Filters' 'SSIM'}
-    table_name = strcat('Output\Filtering images and tabel\',noise_type,'_noise_metric_table.csv');
+    table_name = strcat('Output\Research results\Tabels\',noise_type,'_noise_metric_table.csv');
     writetable(table_metric,table_name);
 end
 %% 1D slices
