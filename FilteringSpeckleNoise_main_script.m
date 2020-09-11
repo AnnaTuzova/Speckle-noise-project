@@ -35,6 +35,7 @@ imsaving_set                = 'off';
 title_condition             = 'on';
 showing_metric_maps_set     = 'off';
 showing_differ_img          = 'on';
+nerual_network_set          = 'on';
 
 %%Settings for 1D slices
 slice_type                  = 'OneMetricAllFilters'; %% 'OneMetricAllFilters', 'OneFilterAllMetrics'
@@ -221,8 +222,53 @@ if (strcmp(filtering_condition, 'on'))
         end  
     end
     
+    %% Denoise Nerual Network
+    if (strcmp(nerual_network_set, 'on'))
+%         names_of_filters = [names_of_filters, 'NerualNetwork'];
+        net = denoisingNetwork('DnCNN');
+        NN_filt_image = denoiseImage(noise_img, net);
+        if (strcmp(imshowing_set, 'on'))
+            NN_filt_img_fig = figure('Name', "Image after nerual network"); 
+            ImageShowing(NN_filt_image, title_condition, "Image after nerual network")
+            ImageSaving(imsaving_set, NN_filt_image, ...
+                'Output\Filtering images\Image after nerual network.png'); 
+        end
+        
+        if (strcmp(showing_differ_img, 'on'))
+            NN_diff_imf_fig = figure('Name', "Difference image after nerual network");
+            NN_diff_img = abs(ref_img - NN_filt_image);
+            NN_diff_img = imadjust(NN_diff_img, [0 0.1], []);
+            ImageShowing(NN_diff_img, title_condition, "Difference image after nerual network")
+            ImageSaving(imsaving_set, NN_diff_imf_fig, ...
+                'Output\Filtering images\Difference image after nerual network.png'); 
+        end
+
+        for j = 1:metric_names_len
+            if ((strcmp(metric_names{j}, 'ssim') ||...
+                strcmp(metric_names{j}, 'gmsdMetric') || ...
+                strcmp(metric_names{j}, 'uqiMetric')) && ...
+                (strcmp(showing_metric_maps_set, 'on')))
+                [metrcis_vals.NerualNetwork.(metric_names{j}), ...
+                    quality_map_NN] = feval(metric_names{j}, NN_filt_image, ref_img); 
+                quality_map_NN_fig = figure('Name', strcat(metric_names{j}, " quality map for nerual network"));  
+                ImageShowing(quality_map_NN, title_condition, strcat(metric_names_for_plot{j},...
+                            " quality map for nerual network"))
+                ImageSaving(imsaving_set, quality_map_NN_fig, ...
+                    strcat('Output\Filtering images\', metric_names{j},...
+                    '_QualityMap_NerualNetwork.png'));        
+            else
+                metrcis_vals.NerualNetwork.(metric_names{j}) = ...
+                    feval(metric_names{j}, NN_filt_image, ref_img);
+            end
+        end
+    end
+    
     %% Table of metric values
-    names_of_filters_for_table = ['NoFilter' names_of_filters];
+    if (strcmp(nerual_network_set, 'on'))
+        names_of_filters_for_table = ['NoFilter' names_of_filters 'NerualNetwork'];
+    else
+        names_of_filters_for_table = ['NoFilter' names_of_filters];
+    end
     metrics_vals_table = zeros(length(names_of_filters_for_table), metric_names_len);
     for i = 1:length(names_of_filters_for_table) 
         for j = 1:metric_names_len
@@ -233,7 +279,7 @@ if (strcmp(filtering_condition, 'on'))
 
     table_metric = array2table(metrics_vals_table,...
         'VariableNames', cellstr(metric_names))
-    table_metric.Properties.RowNames = ['No filter'; names_of_filters']
+    table_metric.Properties.RowNames = [names_of_filters_for_table']
     table_name = strcat('Output\Research results\Tabels\Metrics_table_with_',...
         noise_type, 'Noise,', finding_settings.MetricsInteraction, 'MetricsInteraction,', ...
         num2str(finding_settings.kThershold), '_kThershold','.csv');
