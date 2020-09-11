@@ -14,6 +14,7 @@ function noise_img = AddSpeckle(img, distribution)
         case 'Normal'
            noise_img = img + normrnd(E,D,[size(img,1),size(img,2)]).*img;
         case 'Rayleigh'
+           rng(1);
            noise_img = img + raylrnd(sigma.*ones(size(img,1),size(img,2))).*img;
         case 'CorrelatedRayleigh'
            noise_img = img + ray_noise(corr_gauss, size(img,1), size(img,2), sigma).*img; 

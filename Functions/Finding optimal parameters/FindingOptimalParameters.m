@@ -58,69 +58,48 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
 
 %% Parsing input variable
     defaultNoiseType = 'Rayleigh';
-    defaultWindowAvailability = 'on';
     defaultWindowInitialSize = [11,11];
-    defaultPlotting = 'off';
-    defaultParallelComputing = 'on';
-    defaultFigureType = 'SubplotFigures';
-    expectedNoiseType = {'Normal', 'Rayleigh', 'CorrelatedRayleigh'};
+    defaultMetric = "ssim";
+    defaultFirstFilterParameterInitialVal = 10;
+    defaultSettings.ParallelComputing       = 'on';
+    defaultSettings.MetricsInteraction      = 'off'; 
+    defaultSettings.kThershold              = 0.002;
+    
     existingNameOfFilter = {'MedianFilter', 'LeeFilter', 'MAPFilter', 'FrostFilter', 'KuanFilter', 'BilateralFilter',...
          'AnisotropicDiffusionExp', 'AnisotropicDiffusionQuad'};
-    expectedOnOff = {'on','off'};
-    expectedFigureType = {'SubplotFigures','SeparateFigures'};
-    
+     
 	p = inputParser;
     addRequired(p, 'TestImage', @(x) isnumeric(x) && all(x(:) >= 0) && all(x(:) <= 1))
-    addRequired(p, 'NameOfFilter', @(x) ischar(x))
-    addParameter(p, 'NoiseType', defaultNoiseType, @(x) any(validatestring(x, expectedNoiseType)))
-    addParameter(p, 'WindowAvailability', defaultWindowAvailability, @(x) any(validatestring(x, expectedOnOff)))
+    addRequired(p, 'NameOfFilter', @(x) validateNameOfFilter(x))
+    addParameter(p, 'NoiseType', defaultNoiseType, @(x) validateNoiseType(x))
+    addParameter(p, 'MetricsNames', defaultMetric, @(x) validateMetricsNames(x))
     addParameter(p, 'WindowInitialSize', defaultWindowInitialSize, ...
         @(x) isnumeric(x) && ~isempty(x) && all(size(x) == [1,2]) && all(x > 0))
     addParameter(p, 'FirstFilterParameterRange', @(x) isnumeric(x) && all(x(:) ~= Inf) && all(~isnan(x(:))))
-    addParameter(p, 'NameOfFirstFilterParameter', @(x) ischar(x))
     addParameter(p, 'SecondFilterParameterRange', @(x) isnumeric(x) && all(x(:) ~= Inf) && all(~isnan(x(:))))
-    addParameter(p, 'NameOfSecondFilterParameter', @(x) ischar(x))
     addParameter(p, 'ThirdFilterParameterRange', @(x) isnumeric(x) && all(x(:) ~= Inf) && all(~isnan(x(:))))
-    addParameter(p, 'NameOfThirdFilterParameter', @(x) ischar(x))
-    addParameter(p, 'Plotting', defaultPlotting, @(x) any(validatestring(x, expectedOnOff)))
-    addParameter(p, 'SavingPlot', defaultPlotting, @(x) any(validatestring(x, expectedOnOff)))
-    addParameter(p, 'FigureType', defaultFigureType, @(x) any(validatestring(x, expectedFigureType)))
-    addParameter(p, 'ParallelComputing', defaultParallelComputing, @(x) any(validatestring(x, expectedOnOff)))
-    
+    addParameter(p, 'FirstFilterParameterInitialVal', defaultFirstFilterParameterInitialVal, @(x) isnumeric(x))
+    addParameter(p, 'Settings', defaultSettings, @(x) isstruct(x))
     parse(p, varargin{:});
 
-    %% Noise Overlay
+    %% Variables initialize
     noise_type = p.Results.NoiseType;
     test_image = p.Results.TestImage;
     filter_name = p.Results.NameOfFilter;
-    window_availability = p.Results.WindowAvailability;
-    if(isnumeric(p.Results.WindowInitialSize))
-        win_init_size = p.Results.WindowInitialSize;
-    end
-    
-    switch noise_type
-        case 'Normal' 
-            E = 0.3566; 
-            D = 0.0201; 
-            noise_image = AddSpeckle(test_image, noise_type); 
-            test_image = test_image.*(1 + E);
-            test_image = max(min(test_image, 1), 0);
-        case 'Rayleigh'
-            sigma = 0.2707; 
-            noise_image = AddSpeckle(test_image, noise_type); 
-            test_image = test_image.*(1 + sqrt(pi/2)*sigma);
-            test_image = max(min(test_image, 1), 0);    
-        case 'CorrelatedRayleigh'
-            sigma = 0.2707; 
-            noise_image = AddSpeckle(test_image, noise_type); 
-            test_image = test_image.*(1 + sqrt(pi/2)*sigma);
-            test_image = max(min(test_image, 1), 0);
-    end
-    
-    %% Research
+    win_size_init = p.Results.WindowInitialSize;
+    metric_names = p.Results.MetricsNames;
+    settings = p.Results.Settings;
+
     if (strcmp(filter_name, 'AnisotropicDiffusionExp') || strcmp(filter_name, 'AnisotropicDiffusionQuad'))
         window_availability = 'off';
+    else
+        window_availability = 'on';  
     end
+    
+    noise_image = AddSpeckle(test_image, noise_type);
+    test_image = ConvertRefrenceImage(test_image, noise_type);
+    
+    %% Research  
     %%Only window size is variable 
     if (strcmp(window_availability, 'on') && ~isnumeric(p.Results.FirstFilterParameterRange) && ...
              ~isnumeric(p.Results.SecondFilterParameterRange) && ~isnumeric(p.Results.ThirdFilterParameterRange)) 
@@ -129,20 +108,9 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
                 strcmp(filter_name, existingNameOfFilter{8}))
             error(strcat("Error. Not enough variable parameters for ", filter_name, "!"));
         end
-        window_research_result = FindingOptimalWindowSize(test_image, noise_image, filter_name);
-        optimal_params = {'WindowSideSize', 'SSIM'; window_research_result{2,3}(1), window_research_result{2,3}(2)};
-        research_result = {'WindowSizeVals', 'SSIM(WindowSizeVals)'; 
-            window_research_result{2,1}, window_research_result{2,2}};
-        
-        if (strcmp(p.Results.Plotting, 'on'))
-            fig = figure('Name', strcat(filter_name, " research"));
-            OneParameterResearchPlotting(window_research_result, filter_name);
-            
-            if (strcmp(p.Results.SavingPlot, 'on')) 
-                plot_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '.png');
-                print(fig, plot_filename,'-dpng','-r500');
-            end
-        end
+        [optimal_params, research_result] = FindingOptimalWindowSize(test_image, noise_image, ...
+            filter_name, metric_names, settings.MetricsInteraction,...
+            settings.kThershold, 'ParallelComputing', settings.ParallelComputing);
     %%One variable parameter and variable window size
     elseif (strcmp(window_availability, 'on') && isnumeric(p.Results.FirstFilterParameterRange) && ...
              ~isnumeric(p.Results.SecondFilterParameterRange) && ~isnumeric(p.Results.ThirdFilterParameterRange))
@@ -154,88 +122,23 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
             error(strcat("Error. Not enough variable parameters for ", filter_name, "!"));
         end
         
-        one_optimal_parameter_with_init_win_size = FindingOneOptimalParameter(test_image,...
-            noise_image, filter_name, win_init_size, p.Results.FirstFilterParameterRange);
-        window_research_result = FindingOptimalWindowSize(test_image, noise_image, ...
-            filter_name, 'FirstFilterParameterRange', one_optimal_parameter_with_init_win_size{2,3}(1)); 
-        one_optimal_parameter_with_optimal_win_size = FindingOneOptimalParameter(test_image,...
-            noise_image, filter_name, [window_research_result{2,3}(1), window_research_result{2,3}(1)],....
-            p.Results.FirstFilterParameterRange);
-        optimal_params = {'WindowSideSize', 'FirstParameterValue', 'SSIM'; ...
-            window_research_result{2,3}(1), one_optimal_parameter_with_optimal_win_size{2,3}(1), one_optimal_parameter_with_optimal_win_size{2,3}(2)};
-        research_result = {'OneParameterValsWithInitWinSize', 'SSIM(OneParameterValsWithInitWinSize)',...
-            'WindowSizeVals', 'SSIM(WindowSizeVals)', ...
-            'OneParameterValsWithOptimalWinSize', 'SSIM(OneParameterValsWithOptimalWinSize)'; ...
-            one_optimal_parameter_with_init_win_size{2,1}, one_optimal_parameter_with_init_win_size{2,2},...
-            window_research_result{2,1}, window_research_result{2,2},...
-            one_optimal_parameter_with_optimal_win_size{2,1}, one_optimal_parameter_with_optimal_win_size{2,2}};
+        [~, research_result_init_win_size] = FindingOneOptimalParameter(test_image,...
+            noise_image, filter_name, p.Results.FirstFilterParameterRange, ...
+            metric_names, settings.MetricsInteraction,...
+            settings.kThershold, 'WindowSize', win_size_init, 'ParallelComputing', settings.ParallelComputing);
+        [optim_win_size, window_research_result] = FindingOptimalWindowSize(test_image, noise_image, ...
+            filter_name, metric_names, settings.MetricsInteraction, ...
+            settings.kThershold,  'ResearchResult', research_result_init_win_size,...
+            'ParallelComputing', settings.ParallelComputing);
+        [optimal_first_params, research_result_opt_win_size] =  FindingOneOptimalParameter(test_image,...
+            noise_image, filter_name, p.Results.FirstFilterParameterRange,...
+            metric_names, settings.MetricsInteraction, settings.kThershold, ...
+            'WindowSize', window_research_result, 'ParallelComputing', settings.ParallelComputing);
         
-        if (strcmp(p.Results.Plotting, 'on'))
-            if(strcmp(p.Results.FigureType, 'SubplotFigures'))
-                fig = figure('Name', strcat(filter_name, " research"));
-                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
-                pos1 = [0.15 0.55 0.3 0.3];
-                subplot('Position',pos1)
-                if(ischar(p.Results.NameOfFirstFilterParameter))
-                    OneParameterResearchPlotting(one_optimal_parameter_with_init_win_size, ...
-                        filter_name, 'WindowSize', win_init_size, 'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter)
-                else
-                    OneParameterResearchPlotting(one_optimal_parameter_with_init_win_size, ...
-                        filter_name, 'WindowSize', win_init_size)
-                end
-
-                pos2 = [0.55 0.55 0.3 0.3];
-                subplot('Position',pos2)
-                OneParameterResearchPlotting(window_research_result, filter_name)
-
-                pos3 = [0.35 0.1 0.3 0.3];
-                subplot('Position',pos3)
-                if(ischar(p.Results.NameOfFirstFilterParameter))
-                    OneParameterResearchPlotting(one_optimal_parameter_with_optimal_win_size, ...
-                        filter_name, 'WindowSize', [window_research_result{2,3}(1), window_research_result{2,3}(1)],...
-                        'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter)
-                else
-                    OneParameterResearchPlotting(one_optimal_parameter_with_optimal_win_size,...
-                        filter_name, 'WindowSize', [window_research_result{2,3}(1), window_research_result{2,3}(1)]) 
-                end
-                
-                if (strcmp(p.Results.SavingPlot, 'on')) 
-                    plot_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '.png');
-                    print(fig, plot_filename,'-dpng','-r500');
-                end
-            else
-                fig_stage1 = figure('Name', strcat(filter_name, " research. Stage 1"));
-                if(ischar(p.Results.NameOfFirstFilterParameter))
-                    OneParameterResearchPlotting(one_optimal_parameter_with_init_win_size, ...
-                        filter_name, 'WindowSize', win_init_size, 'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter)
-                else
-                    OneParameterResearchPlotting(one_optimal_parameter_with_init_win_size, ...
-                        filter_name, 'WindowSize', win_init_size)
-                end
-                
-                fig_stage2 = figure('Name', strcat(filter_name, " research. Stage 2"));
-                OneParameterResearchPlotting(window_research_result, filter_name)
-
-                fig_stage3 = figure('Name', strcat(filter_name, " research. Stage 3"));
-                if(ischar(p.Results.NameOfFirstFilterParameter))
-                    OneParameterResearchPlotting(one_optimal_parameter_with_optimal_win_size, ...
-                        filter_name, 'WindowSize', [window_research_result{2,3}(1), window_research_result{2,3}(1)],...
-                        'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter)
-                else
-                    OneParameterResearchPlotting(one_optimal_parameter_with_optimal_win_size,...
-                        filter_name, 'WindowSize', [window_research_result{2,3}(1), window_research_result{2,3}(1)]) 
-                end 
-                
-                if (strcmp(p.Results.SavingPlot, 'on')) 
-                    stage1_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '_stage1.png');
-                    stage2_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '_stage2.png');
-                    stage3_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '_stage3.png');
-                    print(fig_stage1, stage1_filename,'-dpng','-r500');
-                    print(fig_stage2, stage2_filename,'-dpng','-r500');
-                    print(fig_stage3, stage3_filename,'-dpng','-r500');
-                end
-            end   
-        end
+        optimal_params = CovertOptimParams(optim_win_size, optimal_first_params, metric_names);
+        research_result.FirstStage	= research_result_init_win_size;
+        research_result.SecondStage	= window_research_result;
+        research_result.ThirdStage	= research_result_opt_win_size;    
  %%Two variable parameter and variable window size
     elseif (strcmp(window_availability, 'on') && isnumeric(p.Results.FirstFilterParameterRange) && ...
              isnumeric(p.Results.SecondFilterParameterRange) && ~isnumeric(p.Results.ThirdFilterParameterRange))
@@ -246,99 +149,24 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
                 strcmp(filter_name, existingNameOfFilter{8}))
             error(strcat("Error. Not enough variable parameters for ", filter_name, "!"));
         end
+        [~, research_result_init_win_size] = FindingTwoOptimalParameter(test_image,...
+            noise_image, filter_name, p.Results.FirstFilterParameterRange, p.Results.SecondFilterParameterRange,...
+            metric_names, settings.MetricsInteraction,...
+            settings.kThershold, 'WindowSize', win_size_init, 'ParallelComputing', settings.ParallelComputing);
+        [optim_win_size, window_research_result] = FindingOptimalWindowSize(test_image, noise_image, ...
+            filter_name, metric_names, settings.MetricsInteraction, ...
+            settings.kThershold,  'ResearchResult', research_result_init_win_size,...
+            'ParallelComputing', settings.ParallelComputing);
+        [optimal_first_and_second_params, research_result_opt_win_size] = FindingTwoOptimalParameter(test_image,...
+            noise_image, filter_name, ...
+            p.Results.FirstFilterParameterRange, p.Results.SecondFilterParameterRange,...
+            metric_names, settings.MetricsInteraction, settings.kThershold, ...
+            'WindowSize', window_research_result, 'ParallelComputing', settings.ParallelComputing);
         
-        two_optimal_parameter_with_init_win_size = FindingTwoOptimalParameter(test_image,...
-            noise_image, filter_name, win_init_size, ....
-            p.Results.FirstFilterParameterRange, p.Results.SecondFilterParameterRange);
-        window_research_result = FindingOptimalWindowSize(test_image, noise_image, ...
-            filter_name, 'FirstFilterParameterRange', two_optimal_parameter_with_init_win_size{2,4}(1),...
-            'SecondFilterParameterRange', two_optimal_parameter_with_init_win_size{2,4}(2)); 
-        two_optimal_parameter_with_optimal_win_size = FindingTwoOptimalParameter(test_image,...
-            noise_image, filter_name, [window_research_result{2,3}(1), window_research_result{2,3}(1)],....
-            p.Results.FirstFilterParameterRange, p.Results.SecondFilterParameterRange);
-        optimal_params = {'WindowSideSize', 'FirstParameterValue', 'SecondParameterValue', 'SSIM'; ...
-             window_research_result{2,3}(1), two_optimal_parameter_with_optimal_win_size{2,4}(1), two_optimal_parameter_with_optimal_win_size{2,4}(2),...
-            two_optimal_parameter_with_optimal_win_size{2,4}(3)};
-        research_result = {'WindowSideSize', 'FirstParameterValsWithInitWinSize', 'SecondParameterValsWithInitWinSize',...
-            'SSIM(SecondParameterValsWithInitWinSize)',...
-            'WindowSizeVals', 'SSIM(WindowSizeVals)', ...
-            'FirstParameterValsWithOptimalWinSize', 'SecondParameterValsWithOptimalWinSize',...
-            'SSIM(SecondParameterValsWithOptimalWinSize)'; ...
-            window_research_result{2,3}(1), two_optimal_parameter_with_init_win_size{2,1}, two_optimal_parameter_with_init_win_size{2,2},...
-            two_optimal_parameter_with_init_win_size{2,3},...
-            window_research_result{2,1}, window_research_result{2,2},...
-            two_optimal_parameter_with_optimal_win_size{2,1}, two_optimal_parameter_with_optimal_win_size{2,2},...
-            two_optimal_parameter_with_optimal_win_size{2,3}};
-        
-        if (strcmp(p.Results.Plotting, 'on'))
-            if(strcmp(p.Results.FigureType, 'SubplotFigures'))    
-                fig = figure('Name', strcat(filter_name, " research"));
-                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
-                pos1 = [0.15 0.55 0.3 0.3];
-                subplot('Position',pos1)
-                if(ischar(p.Results.NameOfFirstFilterParameter) && ischar(p.Results.NameOfSecondFilterParameter))
-                    TwoParameterResearchPlotting(two_optimal_parameter_with_init_win_size, filter_name,...
-                        win_init_size, 'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter, ...
-                        'NameOfSecondFilterParameter', p.Results.NameOfSecondFilterParameter) 
-                else
-                    TwoParameterResearchPlotting(two_optimal_parameter_with_init_win_size, filter_name, win_init_size) 
-                end
-                
-                pos2 = [0.55 0.55 0.3 0.3];
-                subplot('Position',pos2)
-                OneParameterResearchPlotting(window_research_result, filter_name)
-
-                pos3 = [0.35 0.1 0.3 0.3];
-                subplot('Position',pos3)
-                if(ischar(p.Results.NameOfFirstFilterParameter) && ischar(p.Results.NameOfSecondFilterParameter))
-                    TwoParameterResearchPlotting(two_optimal_parameter_with_optimal_win_size, filter_name,...
-                        [window_research_result{2,3}(1), window_research_result{2,3}(1)],...
-                        'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter, ...
-                        'NameOfSecondFilterParameter', p.Results.NameOfSecondFilterParameter) 
-                else
-                    TwoParameterResearchPlotting(two_optimal_parameter_with_optimal_win_size, ...
-                        filter_name, [window_research_result{2,3}(1), window_research_result{2,3}(1)]) 
-                end
-                
-                if (strcmp(p.Results.SavingPlot, 'on')) 
-                    plot_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '.png');
-                    print(fig, plot_filename,'-dpng','-r500');
-                end
-            else
-                fig_stage1 = figure('Name', strcat(filter_name, " research. Stage 1"));
-                if(ischar(p.Results.NameOfFirstFilterParameter) && ischar(p.Results.NameOfSecondFilterParameter))
-                    TwoParameterResearchPlotting(two_optimal_parameter_with_init_win_size, filter_name,...
-                        win_init_size, 'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter, ...
-                        'NameOfSecondFilterParameter', p.Results.NameOfSecondFilterParameter) 
-                else
-                    TwoParameterResearchPlotting(two_optimal_parameter_with_init_win_size, filter_name, win_init_size) 
-                end
-                
-                fig_stage2 = figure('Name', strcat(filter_name, " research. Stage 2"));
-                OneParameterResearchPlotting(window_research_result, filter_name)
-
-                fig_stage3 = figure('Name', strcat(filter_name, " research. Stage 3"));
-                if(ischar(p.Results.NameOfFirstFilterParameter) && ischar(p.Results.NameOfSecondFilterParameter))
-                    TwoParameterResearchPlotting(two_optimal_parameter_with_optimal_win_size, filter_name,...
-                        [window_research_result{2,3}(1), window_research_result{2,3}(1)],...
-                        'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter, ...
-                        'NameOfSecondFilterParameter', p.Results.NameOfSecondFilterParameter) 
-                else
-                    TwoParameterResearchPlotting(two_optimal_parameter_with_optimal_win_size, ...
-                        filter_name, [window_research_result{2,3}(1), window_research_result{2,3}(1)]) 
-                end
-                
-                if (strcmp(p.Results.SavingPlot, 'on')) 
-                    stage1_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '_stage1.png');
-                    stage2_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '_stage2.png');
-                    stage3_filename = strcat('Output\Graphics\', filter_name, '_', noise_type, '_stage3.png');
-                    print(fig_stage1, stage1_filename,'-dpng','-r500');
-                    print(fig_stage2, stage2_filename,'-dpng','-r500');
-                    print(fig_stage3, stage3_filename,'-dpng','-r500');
-                end
-            end
-            
-        end       
+        optimal_params = CovertOptimParams(optim_win_size, optimal_first_and_second_params, metric_names);
+        research_result.FirstStage	= research_result_init_win_size;
+        research_result.SecondStage	= window_research_result;
+        research_result.ThirdStage	= research_result_opt_win_size;   
  %%Three variable parameter without variable window size        
     elseif (strcmp(window_availability, 'off') && isnumeric(p.Results.FirstFilterParameterRange) && ...
              isnumeric(p.Results.SecondFilterParameterRange) && isnumeric(p.Results.ThirdFilterParameterRange))
@@ -347,24 +175,21 @@ function [optimal_params, research_result] = FindingOptimalParameters(varargin)
                 strcmp(filter_name, existingNameOfFilter{5}) || strcmp(filter_name, existingNameOfFilter{6}))
             error(strcat("Error. Too many variable parameters for ", filter_name, "!"));
         end
-        research_result = FindingThreeOptimalParameter(test_image, noise_image, filter_name,....
-            p.Results.FirstFilterParameterRange, p.Results.SecondFilterParameterRange, p.Results.ThirdFilterParameterRange); 
-        optimal_params = {'FirstParameterValue', 'SecondParameterValue', 'ThirdParameterValue', 'SSIM'; ...
-            research_result{2,9}(1), research_result{2,9}(2),...
-            research_result{2,9}(3), research_result{2,9}(4)};
+        param1_init = p.Results.FirstFilterParameterInitialVal;
+        [~, research_result_init_param1] = FindingTwoOptimalParameter(test_image, noise_image, filter_name,....
+            p.Results.SecondFilterParameterRange, p.Results.ThirdFilterParameterRange, ...
+            metric_names, settings.MetricsInteraction, settings.kThershold,...
+            'ThirdParameter', param1_init, 'ParallelComputing', settings.ParallelComputing);
+        [~, one_param_research_result] = FindingOneOptimalParameter(test_image, noise_image, filter_name,....
+            p.Results.FirstFilterParameterRange, metric_names, settings.MetricsInteraction, settings.kThershold,...
+            'SecondAndThirdParametersResearch', research_result_init_param1, 'ParallelComputing', settings.ParallelComputing);
+        [optimal_params, research_result_opt_param1] = FindingTwoOptimalParameter(test_image, noise_image, filter_name,....
+            p.Results.SecondFilterParameterRange, p.Results.ThirdFilterParameterRange, ...
+            metric_names, settings.MetricsInteraction, settings.kThershold,...
+            'ThirdParameter', one_param_research_result, 'ParallelComputing', settings.ParallelComputing);
         
-        if (strcmp(p.Results.Plotting, 'on'))
-            if(ischar(p.Results.NameOfFirstFilterParameter) && ischar(p.Results.NameOfSecondFilterParameter) && ...
-                    ischar(p.Results.NameOfThirdFilterParameter))
-                ThreeParameterResearchPlotting(research_result, filter_name, noise_type,...
-                    'NameOfFirstFilterParameter', p.Results.NameOfFirstFilterParameter, ...
-                    'NameOfSecondFilterParameter', p.Results.NameOfSecondFilterParameter,...
-                    'NameOfThirdFilterParameter', p.Results.NameOfThirdFilterParameter,...
-                    'SavingPlot', p.Results.SavingPlot, 'FigureType', p.Results.FigureType);
-            else
-                ThreeParameterResearchPlotting(research_result, filter_name, noise_type,...
-                    'SavingPlot', p.Results.SavingPlot, 'FigureType', p.Results.FigureType);
-            end 
-        end       
+        research_result.FirstStage	= research_result_init_param1;
+        research_result.SecondStage	= one_param_research_result;
+        research_result.ThirdStage	= research_result_opt_param1; 
 	end      
 end

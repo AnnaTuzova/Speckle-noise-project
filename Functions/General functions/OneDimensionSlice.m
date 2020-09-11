@@ -23,7 +23,7 @@ function OneDimensionSlice(varargin)
 
   %% Input parsing
     defaultSliceLevel = 0.5;
-    defaultPlotSpacingCoefficient = 0.1;
+    defaultPlotSpacingCoefficient = 0.2;
     defaultSavinfPlot = 'off';
     expectedOnOff = {'on','off'};
     
@@ -48,20 +48,24 @@ function OneDimensionSlice(varargin)
     indices = 1:1:size(ref_img,2);
     slice_row = round(size(ref_img,1)*slice_level);
     names_of_filters = optimal_parameters_of_filters(1,1:end);
+    names_of_filters_for_ledend = ["Median filter", "Lee filter", ...
+        "MAP filter", "Frost filter", "Kuan filter", "Bilateral filter",...
+        "Anisotropic diffusion filter\newlinewith exponential g(x)", "Anisotropic diffusion filter\newlinewith quadratic g(x)"];
+    
     
     d1_slice_ref_img = figure('Name', 'Refernce image for 1D slices');
     set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
     imshow(padarray(ref_img, [1,1],0))
     hold on
     plot(indices,slice_row.*ones(length(indices)),'-r','LineWidth',2.5)
-    title('Image without noise with 1D slice designation')
-    set(gca,'FontSize',12); 
+%     title('Image without noise with 1D slice designation')
+    set(gca,'FontSize',13); 
     
     d1_slice_filters = figure('Name', '1D slices');
     set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
-    plot(indices, ref_img(slice_row,:),'-k','LineWidth', 2)
+    plot(indices, ref_img(slice_row,:),'-.k','LineWidth', 2)
     hold on;
-    plot(indices,noise_img(slice_row,:),'-.r','LineWidth', 0.5)   
+    plot(indices,noise_img(slice_row,:),'-r','LineWidth', 1)   
     color_line = hsv(2*(length(names_of_filters) + 1));
     markers_plot = ['o', '+', '*', 'x', 's', 'd', '^', 'v', '>', '<', 'p', 'h'];
     if (length(names_of_filters) > length(markers_plot))
@@ -88,23 +92,23 @@ function OneDimensionSlice(varargin)
         end
         
         y_vals = filt_image(slice_row,:) + plot_spacing_coeff*i;
-        plot(indices, y_vals, '-', 'color', color_line(2*i,:),'LineWidth', 1.1, 'HandleVisibility','off')
-        plot(indices(1:10:end), y_vals(1:10:end),markers_plot(i), 'color', color_line(2*i,:), 'MarkerSize', 6)
-        legend_names{i} = names_of_filters{i}; 
+        plot(indices, y_vals, '-', 'color', color_line(2*i,:),'LineWidth', 1.8, 'HandleVisibility','off')
+        plot(indices(1:5:end), y_vals(1:5:end),markers_plot(i), 'color', color_line(2*i,:), 'MarkerSize', 8)
+        legend_names{i} = names_of_filters_for_ledend{i}; 
     end
     
     legend_names = ['Image without noise' 'Image with noise' legend_names];
-    legend(legend_names, 'Location', 'bestoutside');  
-    axis([0 length(indices) -0.1 (1 + plot_spacing_coeff*(length(names_of_filters) + 2))]);
-    grid on; set(gca,'FontSize',12); 
-    xlabel('Pixel indices along a 1D slice'); 
+    legend(legend_names, 'Location', 'northeast','NumColumns', 2);  
+    axis([0 length(indices) -0.1 (1 + plot_spacing_coeff*(length(names_of_filters) + 2.5))]);
+    grid on; set(gca,'FontSize',13); 
+    xlabel('Pixel indices along the 1D slice'); 
     ylabel('Pixel intensity values along the 1D slice');  
     
     
     if (strcmp(p.Results.SavingPlot, 'on'))
         d1_slice_ref_img_filename = 'Output\Graphics\reference_image_for_slices.png';
-        d1_slice_filters_filename = 'Output\Graphics\1D_slices.svg'; 
+        d1_slice_filters_filename = 'Output\Graphics\1D_slices.png'; 
         print(d1_slice_ref_img, d1_slice_ref_img_filename, '-dpng', '-r500'); 
-        print(d1_slice_filters, d1_slice_filters_filename, '-dsvg');
+        print(d1_slice_filters, d1_slice_filters_filename, '-dpng', '-r500');
     end
 end
