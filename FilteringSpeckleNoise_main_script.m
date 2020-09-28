@@ -7,21 +7,22 @@ addpath(genpath('Output'));
 test_image = mat2gray(rgb2gray(imread('ref_img_1.png'))); %%ref_img_1
 
 %% Settings  
-research_condition          = 'on'; %%'on' - finding for optimal parameters; 'off' - load existing optimal parameters
+research_condition          = 'off'; %%'on' - finding for optimal parameters; 'off' - load existing optimal parameters
 plotting_graphics_set       = 'off';
-filtering_condition         = 'off';
+filtering_condition         = 'on';
 oneD_slices_condition       = 'off';
 
 %%Settings for finding optimal parameters
 noise_type          = 'Rayleigh';
 window_size_init	= [11,11]; 
-metric_names        = ["ssim", "gmsdMetric", "uqiMetric", "mseMetric", "psnrMetric"]; 
+metric_names        = ["ssim", "gmsdMetric", "uqiMetric", "mseMetric", "psnrMetric"];
+%["ssim", "gmsdMetric", "uqiMetric", "mseMetric", "psnrMetric"]; 
 %%"ssim", "gmsdMetric", "mseMetric", "DetermCoeffMetric", "maeMetric",
 %%"psnrMetric", "uqiMetric"
 metric_names_len	= length(metric_names);
 
 finding_settings.ParallelComputing	= 'on';
-finding_settings.MetricsInteraction	= 'off'; 
+finding_settings.MetricsInteraction	= 'on'; 
 finding_settings.kThershold         = 0.001;
 
 plotting_settings.SavingPlot              = 'on'; 
@@ -31,16 +32,17 @@ plotting_settings.AxisFontSize            = 13;
 
 %%Settings for filtering
 imshowing_set               = 'off'; 
-imsaving_set                = 'off';
-title_condition             = 'on';
+imsaving_set                = 'on';
+title_condition             = 'off';
 showing_metric_maps_set     = 'off';
 showing_differ_img          = 'on';
 nerual_network_set          = 'on';
 
 %%Settings for 1D slices
-slice_type                  = 'OneMetricAllFilters'; %% 'OneMetricAllFilters', 'OneFilterAllMetrics'
-slice_level                 = 0.2;
+slice_type                  = 'OneFilterAllMetrics'; %% 'OneMetricAllFilters', 'OneFilterAllMetrics'
+slice_level                 = 0.335;
 plot_spacing_coefficient	= 0.2;
+nerual_network_1D_slice     = 'on';
 %% Finding optimal parameters
 names_of_filters = {'MedianFilter', 'LeeFilter', 'MAPFilter', 'FrostFilter', 'KuanFilter', 'BilateralFilter',...
          'AnisotropicDiffusionExp', 'AnisotropicDiffusionQuad'};
@@ -58,7 +60,7 @@ if (strcmp(research_condition, 'on'))
         'Settings', finding_settings); %%MAP
 
 %     Frost_parameter_range = 0:0.5:25;
-    Frost_parameter_range = -15:0.2:50;
+    Frost_parameter_range = -5:0.2:50;
     [FrostFilter_optimal_params, FrostFilter_research_result] = FindingOptimalParameters(test_image, 'FrostFilter',...
         'NoiseType', noise_type, 'Metrics', metric_names, 'WindowInitialSize', window_size_init,...
         'FirstFilterParameterRange', Frost_parameter_range, ...
@@ -73,8 +75,8 @@ if (strcmp(research_condition, 'on'))
 
 %     bilat_first_parameter_range = 1:2:15; %%sig_r
 %     bilat_second_parameter_range = 1:2:70; %%sig_d
-    bilat_first_parameter_range = [-8:2:-2 2:2:8]; %%sig_r
-    bilat_second_parameter_range = -21:2:21; %%sig_d
+    bilat_first_parameter_range = [-3:0.8:3]; %%sig_r
+    bilat_second_parameter_range = [-5:0.1:-0.1 0.1:0.1:5]; %%sig_d
     
     [BilateralFilter_optimal_params, BilateralFilter_research_result] = FindingOptimalParameters(test_image, 'BilateralFilter',...
         'NoiseType', noise_type, 'Metrics', metric_names, 'WindowInitialSize', window_size_init,...
@@ -110,7 +112,7 @@ if (strcmp(research_condition, 'on'))
         num2str(finding_settings.kThershold), '_kThershold', '.mat'), 'optimal_parameters');
     save(strcat('Output\Research results\OptimalParameters\ResearchResults_with_', noise_type, 'Noise,',...
         finding_settings.MetricsInteraction, 'MetricsInteraction,', ...
-        num2str(finding_settings.kThershold), '_kThershold', '.mat'), 'optimal_parameters');
+        num2str(finding_settings.kThershold), '_kThershold', '.mat'), 'research_results');
 else
     if (exist(strcat('Output\Research results\OptimalParameters\OptimalParameters_with_', noise_type, 'Noise,',...
         finding_settings.MetricsInteraction, 'MetricsInteraction,', ...
@@ -134,29 +136,45 @@ end
     if (strcmp(plotting_graphics_set, 'on'))
         PlottingResearches(research_results.MedianFilter, 'MedianFilter', noise_type, ...
             'Settings', plotting_settings);
+        close all;
         PlottingResearches(research_results.LeeFilter, 'LeeFilter', noise_type, ...
             'Settings', plotting_settings);
+        close all;
         PlottingResearches(research_results.MAPFilter, 'MAPFilter', noise_type, ...
             'Settings', plotting_settings); 
+        close all;
         PlottingResearches(research_results.FrostFilter, 'FrostFilter', noise_type, ...
             'NameOfFirstFilterParameter', 'D', 'Settings', plotting_settings);
+        close all;
         PlottingResearches(research_results.KuanFilter, 'KuanFilter', noise_type, ...
             'NameOfFirstFilterParameter', 'A', 'Settings', plotting_settings);
+        close all;
          PlottingResearches(research_results.BilateralFilter, 'BilateralFilter', noise_type, ...
             'NameOfFirstFilterParameter', '\sigma_{r}',...
             'NameOfSecondFilterParameter', '\sigma_{d}', 'Settings', plotting_settings);
+        close all;
         PlottingResearches(research_results.AnisotropicDiffusionExp, 'AnisotropicDiffusionExp', noise_type, ...
             'NameOfFirstFilterParameter', 't', 'NameOfSecondFilterParameter', 'k', ...
             'NameOfThirdFilterParameter', '\Deltat', 'Settings', plotting_settings);
+        close all;
         PlottingResearches(research_results.AnisotropicDiffusionQuad, 'AnisotropicDiffusionQuad', noise_type, ...
             'NameOfFirstFilterParameter', 't', 'NameOfSecondFilterParameter', 'k', ...
             'NameOfThirdFilterParameter', '\Deltat', 'Settings', plotting_settings);
+        close all;
     end
 
 %% Filtering
 noise_img = AddSpeckle(test_image, noise_type);
 ref_img = ConvertRefrenceImage(test_image, noise_type);
-if (strcmp(filtering_condition, 'on'))
+if (strcmp(filtering_condition, 'on'))  
+    date = strrep(datestr(datetime('now')), ':','-');
+    path_name = ['Output\Filtering images\', date];
+    mkdir(path_name)
+    path_name = [path_name, '\'];
+    path_differ = [path_name, 'Differ images'];
+    mkdir(path_differ)
+    path_differ = [path_differ, '\'];
+                
 	if (strcmp(imshowing_set, 'on'))
         ref_img_fig = figure('Name', 'Image without noise');
         ImageShowing(ref_img, title_condition, "Reference image (without noise)");
@@ -164,9 +182,10 @@ if (strcmp(filtering_condition, 'on'))
         noise_img_fig = figure('Name', 'Image with noise');  
         ImageShowing(noise_img, title_condition, strcat("Image with ", noise_type, " noise"));
 
-        ImageSaving(imsaving_set, ref_img_fig, strcat('Output\Filtering images\0_ref_img.png'));
-        ImageSaving(imsaving_set, noise_img_fig, strcat('Output\Filtering images\1_img_with_',...
+        ImageSaving(imsaving_set, ref_img_fig, strcat(path_name,'0_ref_img.png'));
+        ImageSaving(imsaving_set, noise_img_fig, strcat(path_name, '1_img_with_',...
                     noise_type,'_noise.png'));
+        close all;
 	end
     
     metric_names_for_plot = GetMetricsNamesForPlotting(metric_names);
@@ -186,21 +205,16 @@ if (strcmp(filtering_condition, 'on'))
                 ImageShowing(filt_image, title_condition, strcat("Image after ", names_of_filters{i}, ...
                     " with optimal parameters by ", metric_names_for_plot{j}))
                 ImageSaving(imsaving_set, filt_img_fig, ...
-                    strcat('Output\Filtering images\', num2str(i), '_', num2str(j),...
+                    strcat(path_name, num2str(i), '_', num2str(j),...
                     '_img_with_', noise_type, '_noise_after_', names_of_filters{i}, '_by_', metric_names{j}, '.png')); 
+                close all;
             end
             
-            if (strcmp(showing_differ_img, 'on'))
-                diff_imf_fig = figure('Name', strcat("Difference image after ", names_of_filters{i}, ...
-                " with optimal parameters by ", metric_names{j}));
+            if (strcmp(showing_differ_img, 'on')) 
                 diff_img = abs(ref_img - filt_image);
-                diff_img = imadjust(diff_img, [0 0.1], []);
-                ImageShowing(diff_img, title_condition, strcat("Difference image after ",...
-                    names_of_filters{i}, " with optimal parameters by ", metric_names_for_plot{j}))
-                ImageSaving(imsaving_set, diff_imf_fig, ...
-                    strcat('Output\Filtering images\', num2str(i), '_', num2str(j),...
+                imwrite(diff_img, strcat(path_differ, num2str(i), '_', num2str(j),...
                     '_differ_img_with_', noise_type, '_noise_after_',...
-                    names_of_filters{i}, '_by_', metric_names{j}, '.png')); 
+                    names_of_filters{i}, '_by_', metric_names{j}, '.png'));
             end
             
             if ((strcmp(metric_names{j}, 'ssim') ||...
@@ -213,8 +227,9 @@ if (strcmp(filtering_condition, 'on'))
                 ImageShowing(quality_map, title_condition, strcat(metric_names_for_plot{j},...
                             " quality map for ", names_of_filters{i}))
                 ImageSaving(imsaving_set, quality_map_fig, ...
-                    strcat('Output\Filtering images\', metric_names{j},...
-                    '_QualityMap_', names_of_filters{i}, '.png'));        
+                    strcat(path_name, metric_names{j},...
+                    '_QualityMap_', names_of_filters{i}, '.png')); 
+                close all;
             else
                 metrcis_vals.(names_of_filters{i}).(metric_names{j}) = ...
                     feval(metric_names{j}, filt_image, ref_img);
@@ -224,23 +239,20 @@ if (strcmp(filtering_condition, 'on'))
     
     %% Denoise Nerual Network
     if (strcmp(nerual_network_set, 'on'))
-%         names_of_filters = [names_of_filters, 'NerualNetwork'];
+    %         names_of_filters = [names_of_filters, 'NerualNetwork'];
         net = denoisingNetwork('DnCNN');
         NN_filt_image = denoiseImage(noise_img, net);
         if (strcmp(imshowing_set, 'on'))
             NN_filt_img_fig = figure('Name', "Image after nerual network"); 
-            ImageShowing(NN_filt_image, title_condition, "Image after nerual network")
-            ImageSaving(imsaving_set, NN_filt_image, ...
-                'Output\Filtering images\Image after nerual network.png'); 
+            ImageShowing(NN_filt_image, title_condition, "Image after neural network")
+            ImageSaving(imsaving_set, NN_filt_img_fig, ...
+                strcat(path_name, 'Image after neural network.png')); 
+            close all;
         end
-        
+
         if (strcmp(showing_differ_img, 'on'))
-            NN_diff_imf_fig = figure('Name', "Difference image after nerual network");
             NN_diff_img = abs(ref_img - NN_filt_image);
-            NN_diff_img = imadjust(NN_diff_img, [0 0.1], []);
-            ImageShowing(NN_diff_img, title_condition, "Difference image after nerual network")
-            ImageSaving(imsaving_set, NN_diff_imf_fig, ...
-                'Output\Filtering images\Difference image after nerual network.png'); 
+            imwrite(NN_diff_img, strcat(path_differ, 'Difference image after neural network.png'));
         end
 
         for j = 1:metric_names_len
@@ -254,13 +266,18 @@ if (strcmp(filtering_condition, 'on'))
                 ImageShowing(quality_map_NN, title_condition, strcat(metric_names_for_plot{j},...
                             " quality map for nerual network"))
                 ImageSaving(imsaving_set, quality_map_NN_fig, ...
-                    strcat('Output\Filtering images\', metric_names{j},...
+                    strcat(path_name, metric_names{j},...
                     '_QualityMap_NerualNetwork.png'));        
+                close all;
             else
                 metrcis_vals.NerualNetwork.(metric_names{j}) = ...
                     feval(metric_names{j}, NN_filt_image, ref_img);
             end
         end
+    end
+    %%
+    if (strcmp(showing_differ_img, 'on'))
+        ContrastChange(path_differ);
     end
     
     %% Table of metric values
@@ -295,6 +312,8 @@ if (strcmp(oneD_slices_condition, 'on'))
     OneDimensionSlice(ref_img, noise_img, optimal_parameters,...
         metric_names, names_of_filters, 'SliceType', slice_type, ...
         'SliceLevel', slice_level, 'PlotSpacingCoefficient', plot_spacing_coefficient, ...
-        'SavingPlot', imsaving_set);
+        'SavingPlot', imsaving_set, 'NerualNetwork', nerual_network_1D_slice,...
+        'PlotsLanguage', 'eng');
+    close all;
 end
 
